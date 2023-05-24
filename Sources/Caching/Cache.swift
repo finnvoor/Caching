@@ -3,29 +3,38 @@ import Foundation
 public actor Cache<Key: Hashable, Value> {
     // MARK: Lifecycle
 
-    public init(provider: @escaping (Key) async -> Value) {
+    public init(provider: @escaping (Key) async throws -> Value) {
         self.provider = provider
     }
 
     // MARK: Public
 
-    public func value(for key: Key) async -> Value {
+    public func value(for key: Key) async throws -> Value {
         if let value = cache[key] {
             return value
         } else if inProgressValueFetches.contains(key) {
-            return await withCheckedContinuation { continuation in
+            return try await withCheckedThrowingContinuation { continuation in
                 continuations[key, default: []].append(continuation)
             }
         } else {
             inProgressValueFetches.insert(key)
-            let value = await provider(key)
-            cache[key] = value
-            inProgressValueFetches.remove(key)
-            for continuation in continuations[key] ?? [] {
-                continuation.resume(returning: value)
+            defer {
+                continuations[key] = nil
+                inProgressValueFetches.remove(key)
             }
-            continuations[key] = nil
-            return value
+            do {
+                let value = try await provider(key)
+                cache[key] = value
+                for continuation in continuations[key] ?? [] {
+                    continuation.resume(returning: value)
+                }
+                return value
+            } catch {
+                for continuation in continuations[key] ?? [] {
+                    continuation.resume(throwing: error)
+                }
+                throw error
+            }
         }
     }
 
@@ -34,7 +43,7 @@ public actor Cache<Key: Hashable, Value> {
     private var cache: [Key: Value] = [:]
 
     private var inProgressValueFetches = Set<Key>()
-    private var continuations: [Key: [CheckedContinuation<Value, Never>]] = [:]
+    private var continuations: [Key: [CheckedContinuation<Value, Error>]] = [:]
 
-    private let provider: (Key) async -> Value
+    private let provider: (Key) async throws -> Value
 }

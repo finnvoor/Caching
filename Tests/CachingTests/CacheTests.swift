@@ -2,7 +2,7 @@
 import XCTest
 
 final class CacheTests: XCTestCase {
-    func testValuesEqual() async {
+    func testValuesEqual() async throws {
         let singleExpectation = expectation(description: "Provider should have only been called once")
         singleExpectation.assertForOverFulfill = true
         singleExpectation.expectedFulfillmentCount = 1
@@ -13,15 +13,15 @@ final class CacheTests: XCTestCase {
             return key.hashValue
         }
 
-        let a = await cache.value(for: "123")
-        let b = await cache.value(for: "123")
+        let a = try await cache.value(for: "123")
+        let b = try await cache.value(for: "123")
 
         await fulfillment(of: [singleExpectation])
 
         XCTAssertEqual(a, b, "Cache calls with the same key should be equal")
     }
 
-    func testSimultaneousRequestsProcessOnce() async {
+    func testSimultaneousRequestsProcessOnce() async throws {
         let singleExpectation = expectation(description: "Provider should have only been called once")
         singleExpectation.assertForOverFulfill = true
         singleExpectation.expectedFulfillmentCount = 1
@@ -37,19 +37,19 @@ final class CacheTests: XCTestCase {
         }
 
         Task {
-            _ = await cache.value(for: "123")
+            _ = try await cache.value(for: "123")
             doubleExpectation.fulfill()
         }
 
         Task {
-            _ = await cache.value(for: "123")
+            _ = try await cache.value(for: "123")
             doubleExpectation.fulfill()
         }
 
         await fulfillment(of: [singleExpectation, doubleExpectation])
     }
 
-    func testCallsDoNotBlockEachOther() async {
+    func testCallsDoNotBlockEachOther() async throws {
         let cache = Cache<String, Int> { key in
             try? await Task.sleep(nanoseconds: (NSEC_PER_SEC / 10) * UInt64(key.count))
             return key.hashValue
@@ -59,19 +59,19 @@ final class CacheTests: XCTestCase {
         firstExpectation.expectedFulfillmentCount = 2
 
         Task {
-            _ = await cache.value(for: "123")
+            _ = try await cache.value(for: "123")
             firstExpectation.fulfill()
         }
 
         Task {
-            _ = await cache.value(for: "123")
+            _ = try await cache.value(for: "123")
             firstExpectation.fulfill()
         }
 
         let secondExpectation = expectation(description: "Second")
 
         Task {
-            _ = await cache.value(for: "1")
+            _ = try await cache.value(for: "1")
             secondExpectation.fulfill()
         }
 
