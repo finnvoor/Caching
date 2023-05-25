@@ -38,6 +38,10 @@ public actor Cache<Key: Hashable, Value> {
         }
     }
 
+    public func clear() {
+        cache.removeAll()
+    }
+
     // MARK: Private
 
     private var cache: [Key: Value] = [:]
