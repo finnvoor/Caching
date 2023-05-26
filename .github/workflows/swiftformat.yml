@@ -1,0 +1,23 @@
+name: swiftformat
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  Lint:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install SwiftFormat
+        run: |
+            curl -L https://github.com/nicklockwood/SwiftFormat/releases/latest/download/swiftformat_linux.zip > swiftformat_linux.zip
+            unzip swiftformat_linux.zip
+            chmod +x swiftformat_linux
+      - name: Lint
+        run: ./swiftformat_linux --lint --reporter github-actions-log --swiftversion 5.8 .
