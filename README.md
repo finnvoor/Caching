@@ -7,11 +7,11 @@ let imageCache = Cache<URL, UIImage> { url in
 }
 
 // Fetched
-let image1 = await imageCache.value(for: URL(string: "https://w.wiki/6kXa")!)
+let (image1, _) = await imageCache.value(for: URL(string: "https://w.wiki/6kXa")!)
 
 // Fetched
-let image2 = await imageCache.value(for: URL(string: "https://w.wiki/6kXZ")!)
+let (image2, _) = await imageCache.value(for: URL(string: "https://w.wiki/6kXZ")!)
 
 // Cached
-let image3 = await imageCache.value(for: URL(string: "https://w.wiki/6kXa")!)
+let (image3, _) = await imageCache.value(for: URL(string: "https://w.wiki/6kXa")!)
 ```

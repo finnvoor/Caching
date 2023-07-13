@@ -9,9 +9,9 @@ public actor Cache<Key: Hashable, Value> {
 
     // MARK: Public
 
-    public func value(for key: Key) async throws -> Value {
+    public func value(for key: Key) async throws -> (value: Value, cached: Bool) {
         if let value = cache[key] {
-            return value
+            return (value, true)
         } else if inProgressValueFetches.contains(key) {
             return try await withCheckedThrowingContinuation { continuation in
                 continuations[key, default: []].append(continuation)
@@ -26,9 +26,9 @@ public actor Cache<Key: Hashable, Value> {
                 let value = try await provider(key)
                 cache[key] = value
                 for continuation in continuations[key] ?? [] {
-                    continuation.resume(returning: value)
+                    continuation.resume(returning: (value, false))
                 }
-                return value
+                return (value, false)
             } catch {
                 for continuation in continuations[key] ?? [] {
                     continuation.resume(throwing: error)
@@ -47,7 +47,7 @@ public actor Cache<Key: Hashable, Value> {
     private var cache: [Key: Value] = [:]
 
     private var inProgressValueFetches = Set<Key>()
-    private var continuations: [Key: [CheckedContinuation<Value, Error>]] = [:]
+    private var continuations: [Key: [CheckedContinuation<(Value, Bool), Error>]] = [:]
 
     private let provider: (Key) async throws -> Value
 }

@@ -13,12 +13,14 @@ final class CacheTests: XCTestCase {
             return key.hashValue
         }
 
-        let a = try await cache.value(for: "123")
-        let b = try await cache.value(for: "123")
+        let (a, cachedA) = try await cache.value(for: "123")
+        let (b, cachedB) = try await cache.value(for: "123")
 
         await fulfillment(of: [singleExpectation])
 
         XCTAssertEqual(a, b, "Cache calls with the same key should be equal")
+        XCTAssertFalse(cachedA, "A should not have been cached")
+        XCTAssertTrue(cachedB, "B should have been cached")
     }
 
     func testSimultaneousRequestsProcessOnce() async throws {
